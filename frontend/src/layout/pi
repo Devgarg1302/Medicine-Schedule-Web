@@ -1,0 +1,235 @@
+import time
+from datetime import datetime
+import pigpio
+import requests
+import socket
+import os
+
+servo_pin = [17, 18, 27, 22, 23, 24, 25]
+timer = [1.68, 1.94, 1.65, 1.73, 1.69, 1.575, 2.05]
+
+FLAG = None
+
+def parse_date(date_string):
+    try:
+        return datetime.strptime(date_string, '%H:%M %d-%m-%Y')
+    except ValueError as e:
+        print(f"Error parsing date: {e}")
+        return None
+
+def fetch_and_process_data(datetime_list):
+    #response = requests.get("http://api-fgdq.onrender.com")
+    # if response.status_code == 200:
+    if True:
+        #data = response.json()
+        data = [{'0': ['22:36 15-12-2024', '21:47 15-12-2024', '21:49 15-12-2024'], '1': ['21:50 15-12-2024', '21:51 15-12-2024', '21:52 15-12-2024'],
+                 '2': ['22:37 15-12-2024', '21:56 15-12-2024', '21:58 15-12-2024'], '3': ['21:59 15-12-2024', '22:00 15-12-2024', '22:01 15-12-2024'],
+                 '4': ['22:38 15-12-2024', '22:40 15-12-2024', '22:06 15-12-2024'], '5': ['22:45 15-12-2024', '22:45 15-12-2024', '22:45 15-12-2024'],
+                 '6': ['22:39 15-12-2024', '22:45 15-12-2024', '22:45 15-12-2024'], '_id': '675db1db0985646b1fc18b21'}]
+        
+        if datetime_list!=[]:
+            datetime_list=[]
+        for item in data:
+            # For each dictionary, check if the values are lists and convert datetime strings to datetime objects
+            for key, date_list in item.items():
+                if isinstance(date_list, list):  # Check if value is a list
+                    for date_string in date_list:
+                        parsed_date = parse_date(date_string)
+                        if parsed_date:
+                            datetime_list.append(parsed_date)
+        return datetime_list
+    else:
+        print(f"Failed to retrieve data. Status code: {response.status_code}")
+        return datetime_list
+
+def trigger_event(event_time, datetime_list):
+    print("SNEEZ")
+    for idx, dt in enumerate(datetime_list):  # Loop through the flat list
+        print("LOOP", dt.replace(second=0, microsecond=0) == event_time.replace(second=0, microsecond=0))
+        if dt.replace(second=0, microsecond=0) == event_time.replace(second=0, microsecond=0):
+            move_servo(idx // 3)  # Determine which servo to move based on index
+            print("AAYA")
+        else:
+            print("HAGA")
+    print("Triggered at", event_time)
+
+def monitor_time(datetime_list):
+    global FLAG
+    print("Starting time monitoring...")
+
+    while True:
+        now = datetime.now()
+        datetime_list=fetch_and_process_data(datetime_list)
+        for event_time in datetime_list:
+            if now.replace(second=0, microsecond=0) == event_time.replace(second=0, microsecond=0):
+                if event_time!=FLAG:
+                    trigger_event(event_time, datetime_list)
+                    FLAG = event_time
+
+        time.sleep(15)
+
+def move_servo(n: int):
+    global pi
+    print("IG?")
+    if n<0 or n>6:
+        print(n, "is NOT a valid motor")
+        return None
+    print("HI")
+    pi.set_servo_pulsewidth(servo_pin[n], 1550)
+    time.sleep(timer[n])
+    pi.set_servo_pulsewidth(servo_pin[n], 1500)
+    # Send a ping to the Node.js server when the motor rotates
+    try:
+        response = requests.post("http://your-nodejs-server-url/motor-rotated", data={"motor": f"Motor {n} rotated"})
+        response.raise_for_status()
+        print(f"Successfully sent data for Motor {n}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send data for Motor {n}: {e}")
+
+def all_motors_done():
+    # Send a ping to the Node.js server when all motors are done rotating
+    requests.post("http://your-nodejs-server-url/all-motors-done", data={"status": "All motors done rotating"})
+
+try:
+    pi = pigpio.pi()
+    print("??")
+    if not pi.connected:
+        print("Failed to connect to pigpio daemon.\nTry running \"sudo pigpiod\"")
+        exit(-1)
+    print(">>")
+    while 1:
+        print("HUH")
+        datetime_list = fetch_and_process_data([])
+        print("OK1")
+        monitor_time(datetime_list)
+        print("OK2")
+        all_motors_done()
+except KeyboardInterrupt:
+    print("Exiting....")
+finally:
+    print("BROKE")
+    for i in range(0, 7):
+        pi.set_servo_pulsewidth(servo_pin[i], 1500)
+    pi.stop()
+    exit(0)
+    def send_image_to_mobile(image_path):
+        # Function to send image to mobile phone
+        with open(image_path, 'rb') as image_file:
+            image_data = image_file.read()
+        
+        # Assuming the mobile phone is running a server to receive the image
+        mobile_ip = "192.168.1.100"  # Replace with your mobile phone's IP address
+        mobile_port = 12345  # Replace with the port your mobile phone server is listening on
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((mobile_ip, mobile_port))
+            s.sendall(image_data)
+            print("Image sent to mobile phone")
+
+    def send_audio_to_mobile(audio_path):
+        # Function to send audio to mobile phone
+        with open(audio_path, 'rb') as audio_file:
+            audio_data = audio_file.read()
+        
+        # Assuming the mobile phone is running a server to receive the audio
+        mobile_ip = "192.168.1.100"  # Replace with your mobile phone's IP address
+        mobile_port = 12346  # Replace with the port your mobile phone server is listening on
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((mobile_ip, mobile_port))
+            s.sendall(audio_data)
+            print("Audio sent to mobile phone")
+
+    # Example usage
+    send_image_to_mobile('/path/to/image.jpg')
+    send_audio_to_mobile('/path/to/audio.mp3')
+    
+    def get_latest_file(directory, file_extension):
+        files = [f for f in os.listdir(directory) if f.endswith(file_extension)]
+        if not files:
+            return None
+        latest_file = max(files, key=lambda f: os.path.getctime(os.path.join(directory, f)))
+        return os.path.join(directory, latest_file)
+
+    # Example usage
+    image_directory = '/path/to/image/folder'
+    audio_directory = '/path/to/audio/folder'
+
+    latest_image = get_latest_file(image_directory, '.jpg')
+    latest_audio = get_latest_file(audio_directory, '.mp3')
+
+    if latest_image:
+        send_image_to_mobile(latest_image)
+    else:
+        print("No image files found in the directory")
+
+    if latest_audio:
+        send_audio_to_mobile(latest_audio)
+    else:
+        print("No audio files found in the directory")
+        def fetch_image_and_audio():
+            # Fetch image and audio from Node.js server
+            image_response = requests.get("http://your-nodejs-server-url/image")
+            audio_response = requests.get("http://your-nodejs-server-url/audio")
+
+            if image_response.status_code == 200:
+                with open('/path/to/save/image.jpg', 'wb') as image_file:
+                    image_file.write(image_response.content)
+                print("Image fetched and saved")
+            else:
+                print("Failed to fetch image")
+
+            if audio_response.status_code == 200:
+                with open('/path/to/save/audio.mp3', 'wb') as audio_file:
+                    audio_file.write(audio_response.content)
+                print("Audio fetched and saved")
+            else:
+                print("Failed to fetch audio")
+
+        # Example usage
+        fetch_image_and_audio()
+
+        latest_image = get_latest_file('/path/to/save', '.jpg')
+        latest_audio = get_latest_file('/path/to/save', '.mp3')
+
+        if latest_image:
+            send_image_to_mobile(latest_image)
+        else:
+            print("No image files found in the directory")
+
+        if latest_audio:
+            send_audio_to_mobile(latest_audio)
+        else:
+            print("No audio files found in the directory")
+            
+                
+                # const express = require('express');
+                # const fs = require('fs');
+                # const path = require('path');
+
+                # const app = express();
+                # const port = 3000;
+
+                # // Endpoint to send image
+                # app.get('/image', (req, res) => {
+                #     const imagePath = path.join(__dirname, 'path/to/image.jpg');
+                #     if (fs.existsSync(imagePath)) {
+                #         res.sendFile(imagePath);
+                #     } else {
+                #         res.status(404).send('Image not found');
+                #     }
+                # });
+
+                # // Endpoint to send audio
+                # app.get('/audio', (req, res) => {
+                #     const audioPath = path.join(__dirname, 'path/to/audio.mp3');
+                #     if (fs.existsSync(audioPath)) {
+                #         res.sendFile(audioPath);
+                #     } else {
+                #         res.status(404).send('Audio not found');
+                #     }
+                # });
+
+                # app.listen(port, () => {
+                #     console.log(`Server is running on http://localhost:${port}`);
+                # });

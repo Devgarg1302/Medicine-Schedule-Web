@@ -1,0 +1,40 @@
+.cards{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.card{
+    padding: 10px;
+    margin-top: 30px;
+    margin-left: 50px;
+}
+
+.scard{
+    display: flex;
+    flex-wrap: wrap;
+
+}
+
+.modal-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 30%;
+    max-width: 90%;
+}
+
+.modal .MuiTextField-root {
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.modal .MuiButton-root {
+    margin-right: 10px;
+}
