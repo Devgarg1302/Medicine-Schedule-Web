@@ -16,7 +16,7 @@ const Home = () => {
             <div className="notification">
                 <p>
                     You can view the backend code on our GitHub repository: 
-                    <a style={{ color: 'blue', fontWeight: 'bold' }} href="https://github.com/your-repo-link" target="_blank" rel="noopener noreferrer">
+                    <a style={{ color: 'blue', fontWeight: 'bold' }} href="https://github.com/Devgarg1302/Medicine-Schedule-web/tree/main/mongo" target="_blank" rel="noopener noreferrer">
                         GitHub Repository
                     </a>
                 </p>
